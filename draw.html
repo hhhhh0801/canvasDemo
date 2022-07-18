@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简易画板</title>
+    <style>
+        #myCanvas{
+           background: #eee;
+        }
+        .draw-wrap{
+            position: relative;
+        }
+        .draw-tools{
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+        }
+        .tool-item{
+            margin-right: 20px;
+            border: 1px solid #3c9cff;
+            color: #3c9cff;
+            border-radius: 10px;
+            cursor: pointer;
+            padding: 0 4px;
+            user-select: none;
+        }
+        .draw-color{
+            position: absolute;
+            top: 50px;
+            left: 10px;
+        }
+        .color-item{
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="draw-wrap">
+        <canvas id="myCanvas" width="600" height="600"></canvas>
+        <div class="draw-tools">
+            <div class="tool-item">画笔</div>
+            <div class="tool-item">橡皮擦</div>
+            <div class="tool-item">清除</div>
+            <div class="tool-item">保存</div>
+        </div>
+        <div class="draw-color">
+            <div class="color-item" style="background-color: #000000"></div>
+            <div class="color-item" style="background-color: #285ff4"></div>
+            <div class="color-item" style="background-color: #64c466"></div>
+            <div class="color-item" style="background-color: #f7ce46"></div>
+            <div class="color-item" style="background-color: #eb4d3d"></div>
+            <div class="color-item" style="background-color: #ffffff"></div>
+        </div>
+    </div>
+</body>
+<script>
+   
+
+    let canvas=document.getElementById("myCanvas");
+    let ctx=canvas.getContext("2d"); 
+
+    let painting = false;
+    let lastPoint = {x: '', y: ''};
+    let lineColor =  "#000000";
+
+    // 颜色切换
+    let colorList = document.getElementsByClassName('color-item');
+    for (let i = 0; i < colorList.length; i++) {
+        colorList[i].onclick = function() {
+            lineColor = colorList[i].style.backgroundColor;
+        }
+    }
+
+    // 工具切换
+    let toolList = document.getElementsByClassName('tool-item');
+    for (let i = 0; i < toolList.length; i++) {
+        toolList[i].onclick = function() {
+            setActiveTool(i);
+            switch (toolList[i].innerHTML) {
+                case '画笔':
+                    onBrush();
+                    break;
+                case '橡皮擦':
+                    onEraser();
+                    break;
+                case '清除':
+                    onClear();
+                    break;
+                case '保存':
+                    onSave();
+                    break;
+            }
+        }
+    }
+    function setActiveTool(index) {
+        for (let i = 0; i < toolList.length; i++) {
+            if(i === index) {
+                toolList[i].style.color = '#eb4d3d';
+                toolList[i].style.borderColor = '#eb4d3d';
+            }else{
+                toolList[i].style.color = '#3c9cff';
+                toolList[i].style.borderColor = '#3c9cff';
+            }
+        }
+    }
+    let EraserEnabled = false;
+
+   function onBrush() {
+        EraserEnabled = false;
+    }
+
+    function onEraser() {
+        EraserEnabled = true;
+    }
+
+    function onClear() {
+        ctx.clearRect(0, 0, 600, 600);
+    }
+
+    function onSave () {
+        let url = canvas.toDataURL('image/jpg');
+        let a = document.createElement('a');
+        document.body.appendChild(a);
+        a.href = url;
+        a.download = 'paint';
+        a.target = '_blank';
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    canvas.onmousedown = function (e) {
+        painting = true;
+        const x = e.offsetX;
+        const y = e.offsetY;
+        lastPoint = {x: x, y: y};
+    };
+    canvas.onmousemove = function (e) {
+        if(!painting) return;
+        const x = e.offsetX;
+        const y = e.offsetY;
+        if(EraserEnabled){
+            // 擦除
+            ctx.clearRect(x - 15, y - 15, 30, 30)
+        }else{
+            // 画线
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = lineColor;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.moveTo(lastPoint.x, lastPoint.y);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.closePath();
+            lastPoint = {x: x, y: y};
+        }
+    };
+    canvas.onmouseup =  function (e) {
+        painting = false
+    }
+    
+</script>               
+</html>
