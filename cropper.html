@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        .cropper{
+            display: flex;
+        }
+        .canvasBox{
+            width: 600px;
+            height: 600px;
+            background: #ccc;
+            position: relative;
+            flex-shrink: 0;
+            margin-right: 20px;
+        }
+        #myCanvas{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="cropper">
+        <div class="canvasBox">
+            <canvas id="myCanvas" width="600" height="600"></canvas>
+        </div>
+        <div class="tools">
+            <canvas id="previewCanvas"></canvas>
+            <div>
+                <button onclick="onUpload()">upload</button>
+                <button onclick="onSave()">save</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+   
+    let canvas = document.getElementById("myCanvas");
+    let ctx = canvas.getContext("2d"); 
+
+    let previewCanvas = document.getElementById("previewCanvas");
+    let pctx = previewCanvas.getContext("2d"); 
+
+    let fileInput = document.createElement("input");
+    fileInput.setAttribute('type', 'file');
+    fileInput.setAttribute('accept', 'image/*');
+    fileInput.setAttribute('id', 'fileInput');
+    let image = new Image();
+
+    let canvasWidth = canvas.width;
+    let canvasHeight = canvas.height;
+    let canvasImgWidth = canvas.width;
+    let canvasImgHeight = canvas.height;
+
+    fileInput.onchange = function (event) {
+        let file = event.target.files[0];
+        let url = window.URL.createObjectURL(file);
+        image.src = url
+    }
+
+    onUpload = function (res) {
+        fileInput.click();
+    }
+
+    image.onload = function (res) {
+        drawImage();
+    }
+
+    drawImage = function() {
+        canvasImgWidth = image.width
+        canvasImgHeight = image.height
+        // 判断是否为竖向的图
+        let isVertical = image.width/image.height < 1;
+        // 上传的图片按原始比例显示，计算图片宽高
+        if(isVertical){
+            if(image.height > canvasHeight){
+                canvasImgWidth = image.width / image.height * canvasHeight
+                canvasImgHeight = canvasHeight
+            }
+        }else{
+            if(image.width > canvasWidth){
+                canvasImgWidth = canvasWidth
+                canvasImgHeight = canvasHeight / (image.width / image.height)
+            }
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.drawImage(image, (canvasWidth - canvasImgWidth) / 2, (canvasHeight - canvasImgHeight) / 2, canvasImgWidth, canvasImgHeight);
+        ctx.restore();
+    }
+
+    drawCover = function() {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.restore();
+    };
+
+    drawSelect = function(x, y, w, h) {
+        //清空整个canvas
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        //绘画蒙层
+        drawCover();
+        ctx.save();
+        // //清空选中区域
+        ctx.clearRect(x, y, w, h);
+        // 画选中框
+        ctx.strokeStyle = '#5696f8';
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+        // 绘画图片
+        drawImage();
+    };
+    drawPreview = function(x, y, w, h) {
+        pctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        let imgData = ctx.getImageData(x, y, w, h);
+        previewCanvas.width = w;
+        previewCanvas.height = h;
+        previewCanvas.strokeStyle = 'none';
+        pctx.putImageData(imgData, 0, 0, 0, 0, w, h);
+    }
+    onSave = function() {
+        let url = previewCanvas.toDataURL('image/jpg');
+        let a = document.createElement('a');
+        document.body.appendChild(a);
+        a.href = url;
+        a.download = 'cropper';
+        a.target = '_blank';
+        a.click();
+        document.body.removeChild(a);
+    }
+
+
+    let flag = false;
+    let selectBox = {
+        x: '',
+        y: '',
+        w: '',
+        h: ''
+    }
+    canvas.onmousedown = function (e) {
+        flag = true;
+        selectBox.x = e.offsetX;
+        selectBox.y = e.offsetY;
+    };
+    canvas.onmousemove = function (e) {
+        if(!flag) return;
+        selectBox.w = e.offsetX - selectBox.x;
+        selectBox.h = e.offsetY - selectBox.y;
+        drawSelect(selectBox.x, selectBox.y, selectBox.w, selectBox.h);
+        drawPreview(selectBox.x, selectBox.y, selectBox.w, selectBox.h)
+    };
+    canvas.onmouseup =  function (e) {
+        flag = false;
+    }
+    
+</script>               
+</html>
